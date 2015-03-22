@@ -26,6 +26,7 @@ public class CPU implements Runnable
     //======================================================================
     //Constants
     //----------------------------------------------------------------------
+    //{
 
     //These constants define the instructions available on the chip
     public static final int SET    = 0;    /* set value of reg */
@@ -59,10 +60,14 @@ public class CPU implements Runnable
     public static final int NUMGENREG = PC; // the number of general registers
     public static final int INSTRSIZE = 4;  // number of ints in a single instr +
                                             // args.  (Set to a fixed value for simplicity.)
+    public static final int CLOCK_FREQ = 5; // number of CPU cycles between
+                                            // clock interrupts
+    //}
 
     //======================================================================
     //Member variables
     //----------------------------------------------------------------------
+    //{
     /**
      * specifies whether the CPU should output details of its work
      **/
@@ -87,10 +92,24 @@ public class CPU implements Runnable
      * @see InterruptController
      **/
     private InterruptController m_IC = null;
+    
+    /**
+     * a reference to the trap handler for this CPU.  On a real CPU this would
+     * simply be an address that the PC register is set to.
+     */
+    private TrapHandler m_TH = null;
+
+    /**
+     * record the number of CPU cycles the simulation has undergone.
+     */
+    private int m_ticks = 0;
+
+    //}
 
     //======================================================================
     //Callback Interface
     //----------------------------------------------------------------------
+    //{
 
     /**
      * TrapHandler
@@ -105,20 +124,16 @@ public class CPU implements Runnable
         public void interruptIllegalMemoryAccess(int addr);
         public void interruptDivideByZero();
         public void interruptIllegalInstruction(int[] instr);
+        public void interruptClock();
         public void systemCall();
     };//interface TrapHandler
 
-    
-    /**
-     * a reference to the trap handler for this CPU.  On a real CPU this would
-     * simply be an address that the PC register is set to.
-     */
-    private TrapHandler m_TH = null;
-
+    //}
 
     //======================================================================
-    //Methods
+    //Ctor and Getter / Setter Methods
     //----------------------------------------------------------------------
+    //{
 
     /**
      * CPU ctor
@@ -239,6 +254,33 @@ public class CPU implements Runnable
     }
 
     /**
+     * addTicks
+     *
+     * @param t the number of ticks to add.
+     */
+    public void addTicks(int t)
+    {
+        m_ticks += t;
+    }
+
+    /**
+     * getTicks
+     *
+     * @return the number of ticks which have elapsed.
+     */
+    public int getTicks()
+    {
+        return m_ticks;
+    }
+
+    //}
+
+    //======================================================================
+    //Debug Methods
+    //----------------------------------------------------------------------
+    //{
+    
+    /**
      * regDump
      *
      * Prints the values of the registers.  Useful for debugging.
@@ -317,6 +359,12 @@ public class CPU implements Runnable
 
     }//printInstr
 
+    //}
+
+    //======================================================================
+    //Methods
+    //----------------------------------------------------------------------
+    //{
 
     /**
      * checkForIOInterrupt
@@ -460,6 +508,11 @@ public class CPU implements Runnable
             //Check for ID Interrupt
             checkForIOInterrupt();
 
+            //Check for clock interrupt
+            if (m_ticks++ % CLOCK_FREQ == 0) {
+                m_TH.interruptClock();
+            }
+
             //Fetch next instruction
             int instr[] = m_RAM.fetch(m_registers[BASE] + m_registers[PC]);
 
@@ -552,6 +605,8 @@ public class CPU implements Runnable
         }
 
     }//run
+
+    //}
     
 };//class CPU
 

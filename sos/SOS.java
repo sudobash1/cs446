@@ -14,6 +14,7 @@ import java.util.*;
  * HW 3 Stephen Robinson and Connor Haas
  * HW 4 Stephen Robinson and Jordan White
  * HW 5 Stephen Robinson and Jason Vanderwerf
+ * HW 6 Stephen Robinson and Davis Achong
  */
    
 public class SOS implements CPU.TrapHandler
@@ -441,8 +442,6 @@ public class SOS implements CPU.TrapHandler
     }
 
     /**
-     * interruptIllegalMemoryAccess
-     *
      * Handles Illegal Memory Access interrupts.
      *
      * @param addr The address which was attempted to be accessed
@@ -454,8 +453,6 @@ public class SOS implements CPU.TrapHandler
     }
 
     /**
-     * interruptDivideByZero
-     *
      * Handles Divide by Zero interrupts.
      */
     public void interruptDivideByZero() {
@@ -465,8 +462,6 @@ public class SOS implements CPU.TrapHandler
     }
 
     /**
-     * interruptIllegalInstruction
-     *
      * Handles Illegal Instruction interrupts.
      *
      * @param instr The instruction which caused the interrupt
@@ -476,6 +471,13 @@ public class SOS implements CPU.TrapHandler
         System.out.println(instr[0] + ", " + instr[1] + ", " + instr[2] + ", " + instr[3]);
         System.out.println("NOW YOU DIE!!!");
         System.exit(0);
+    }
+
+    /**
+     * Handles Clock interrupts.
+     */
+    public void interruptClock() {
+        //TODO
     }
 
     //}
