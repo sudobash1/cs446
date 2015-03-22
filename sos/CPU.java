@@ -446,7 +446,7 @@ public class CPU implements Runnable
      * @param registers the registers array to use.
      */
     public void pushStack(int value, int[] registers) {
-        if (!validMemory(m_registers[SP] + registers[BASE], registers)) {
+        if (!validMemory(registers[SP] + registers[BASE], registers)) {
             //Stack overflow!
             //This was probably deliberate because we had to overwrite the
             //program with stack memory to do this.
