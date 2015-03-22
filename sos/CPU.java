@@ -509,7 +509,7 @@ public class CPU implements Runnable
             checkForIOInterrupt();
 
             //Check for clock interrupt
-            if (m_ticks++ % CLOCK_FREQ == 0) {
+            if (++m_ticks % CLOCK_FREQ == 0) {
                 m_TH.interruptClock();
             }
 
@@ -610,4 +610,4 @@ public class CPU implements Runnable
     
 };//class CPU
 
-// vim: foldmethod=marker foldmarker={,} foldlevel=0
+// vim: foldmethod=marker foldmarker={,} foldlevel=99
