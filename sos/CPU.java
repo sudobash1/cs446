@@ -513,6 +513,14 @@ public class CPU implements Runnable
                 m_TH.interruptClock();
             }
 
+            m_registers[PC] += INSTRSIZE; //Increment the PC counter
+
+            //Check for out of bounds PC
+            if (!validMemory(m_registers[BASE] + m_registers[PC])) {
+                m_TH.interruptIllegalMemoryAccess(m_registers[BASE] + m_registers[PC]);
+                return;
+            }
+
             //Fetch next instruction
             int instr[] = m_RAM.fetch(m_registers[BASE] + m_registers[PC]);
 
@@ -594,14 +602,6 @@ public class CPU implements Runnable
                     m_TH.interruptIllegalInstruction(instr);
                     return;
             }//switch
-
-            m_registers[PC] += INSTRSIZE; //Increment the PC counter
-
-            //Check for out of bounds PC
-            if (!validMemory(m_registers[BASE] + m_registers[PC])) {
-                m_TH.interruptIllegalMemoryAccess(m_registers[BASE] + m_registers[PC]);
-                return;
-            }
         }
 
     }//run
