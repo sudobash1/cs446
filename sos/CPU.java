@@ -553,3 +553,5 @@ public class CPU implements Runnable
     }//run
     
 };//class CPU
+
+// vim: foldmethod=marker foldmarker={,} foldlevel=0
