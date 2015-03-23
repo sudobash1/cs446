@@ -28,7 +28,7 @@ public class SOS implements CPU.TrapHandler
      * This flag causes the SOS to print lots of potentially helpful
      * status messages
      **/
-    public static final boolean m_verbose = false;
+    public static final boolean m_verbose = true;
 
     /**
      * The ProcessControlBlock of the current process
@@ -97,6 +97,8 @@ public class SOS implements CPU.TrapHandler
     public static final int SYSCALL_RET_NOT_OPEN = 4;    /* device is not yet open */
     public static final int SYSCALL_RET_RO = 5;    /* device is read only */
     public static final int SYSCALL_RET_WO = 6;    /* device is write only */
+
+    public static final int MAX_QUANTUM = 5;
 
     /**This process is used as the idle process' id*/
     public static final int IDLE_PROC_ID    = 999;  
@@ -280,6 +282,55 @@ public class SOS implements CPU.TrapHandler
         
     }//selectBlockedProcess
 
+
+    /**
+     * chooseProcess
+     *
+     * selects a non-Blocked process according to the scheduling algorithm.
+     *
+     * @return a reference to the ProcessControlBlock struct of the selected process
+     * -OR- null if no non-blocked process exists
+     */
+    ProcessControlBlock chooseProcess()
+    {
+        if (m_currProcess != null) {
+
+            //If we can, we will want to keep the current process running
+            if (! m_currProcess.isBlocked()) {
+
+                //Check if the process is being selfish and needs a time-out.
+                if (++m_currProcess.quantum > MAX_QUANTUM) {
+                    //Reset its quatum to give it another chance.
+                    m_currProcess.quantum = 0;
+                } else {
+                    return m_currProcess;
+                }
+            }
+        }
+
+        ProcessControlBlock newProc = null;
+
+        //We will see if there is a better process to run, but if there isn't
+        //then we will just keep going with the current process if it isn't
+        //blocked.
+        if (! (m_currProcess == null) && ! m_currProcess.isBlocked()) {
+            newProc = m_currProcess;
+        }
+        double maxStarve = -1.;
+
+        //Find the most starved process
+        for (ProcessControlBlock pcb: m_processes) {
+            if (pcb != m_currProcess) {
+                if (! pcb.isBlocked() && pcb.avgStarve > maxStarve) {
+                    maxStarve = pcb.avgStarve;
+                    newProc = pcb;
+                }
+            }
+        }
+
+        return newProc;
+    }//chooseProcess
+    
     /**
      * getRandomProcess
      *
@@ -314,21 +365,23 @@ public class SOS implements CPU.TrapHandler
      */
     public void scheduleNewProcess()
     {
-        printProcessTable();
-
         if (m_processes.size() == 0) {
             System.exit(0);
         }
 
         ProcessControlBlock proc = getRandomProcess();
+        //ProcessControlBlock proc = chooseProcess();
 
         if (proc == null) {
             //Schedule an idle process.
             createIdleProcess();
+            printProcessTable();
             return;
         }
 
+        //We are just scheduling ourself again don't bother context switching!
         if (proc == m_currProcess) {
+            debugPrintln("Keeping curr proc. Q:" + m_currProcess.quantum);
             return;
         }
 
@@ -340,6 +393,8 @@ public class SOS implements CPU.TrapHandler
         //Set this process as the new current process
         m_currProcess = proc;
         m_currProcess.restore(m_CPU);
+
+        printProcessTable();
     }//scheduleNewProcess
 
     /**
@@ -400,7 +455,6 @@ public class SOS implements CPU.TrapHandler
 
         m_currProcess = new ProcessControlBlock(m_nextProcessID++);
         m_processes.add(m_currProcess);
-        m_currProcess.save(m_CPU);
 
         //Write the program code to memory
         int[] progArray = prog.export();
@@ -408,6 +462,8 @@ public class SOS implements CPU.TrapHandler
         for (int progAddr=0; progAddr<progArray.length; ++progAddr ){
             m_RAM.write(base + progAddr, progArray[progAddr]);
         }
+        
+        printProcessTable();
     }//createProcess
  
     //}
@@ -477,7 +533,8 @@ public class SOS implements CPU.TrapHandler
      * Handles Clock interrupts.
      */
     public void interruptClock() {
-        //TODO
+        debugPrintln("------------------------------CLOCK INTERRUPT");
+        scheduleNewProcess();
     }
 
     //}
@@ -876,6 +933,8 @@ public class SOS implements CPU.TrapHandler
          * Used to store the average starve time for this process
          */
         private double avgStarve = 0;
+
+        public int quantum = 0;
         
         /**
          * constructor
@@ -1285,7 +1344,7 @@ public class SOS implements CPU.TrapHandler
     
     /*======================================================================
      * Device Management Methods
-     *-------------------------------------d---------------------------------
+     *----------------------------------------------------------------------
      */
     //{
 
@@ -1329,4 +1388,4 @@ public class SOS implements CPU.TrapHandler
 
 };//class SOS
 
-// vim: foldmethod=marker foldmarker={,} foldlevel=0
+// vim: foldmethod=marker foldmarker={,} foldlevel=99
