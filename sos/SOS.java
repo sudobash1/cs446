@@ -951,13 +951,13 @@ public class SOS implements CPU.TrapHandler
         /**
          * How much of the proc's quantum has been used.
          */
-        public int quantum_used = 0;
+        protected int quantum_used = 0;
 
         /**
          * The proc's current quantum. This number also represents the proc's
          * priority. Higher quantum proc's are more important.
          */
-        public int quantum = MIN_QUANTUM;
+        protected int quantum = MIN_QUANTUM;
         
         /**
          * constructor
