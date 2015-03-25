@@ -13,6 +13,7 @@ import java.util.*;
  * HW 3 Stephen Robinson and Connor Haas
  * HW 4 --Unchanged--
  * HW 5 Stephen Robinson and Jason Vanderwerf
+ * HW 6 Stephen Robinson and Davis Achong
  *
  * @see RAM
  * @see SOS
@@ -26,7 +27,6 @@ public class CPU implements Runnable
     //======================================================================
     //Constants
     //----------------------------------------------------------------------
-    //{
 
     //These constants define the instructions available on the chip
     public static final int SET    = 0;    /* set value of reg */
@@ -62,12 +62,10 @@ public class CPU implements Runnable
                                             // args.  (Set to a fixed value for simplicity.)
     public static final int CLOCK_FREQ = 5; // number of CPU cycles between
                                             // clock interrupts
-    //}
 
     //======================================================================
     //Member variables
     //----------------------------------------------------------------------
-    //{
     /**
      * specifies whether the CPU should output details of its work
      **/
@@ -104,12 +102,10 @@ public class CPU implements Runnable
      */
     private int m_ticks = 0;
 
-    //}
 
     //======================================================================
     //Callback Interface
     //----------------------------------------------------------------------
-    //{
 
     /**
      * TrapHandler
@@ -128,12 +124,10 @@ public class CPU implements Runnable
         public void systemCall();
     };//interface TrapHandler
 
-    //}
 
     //======================================================================
     //Ctor and Getter / Setter Methods
     //----------------------------------------------------------------------
-    //{
 
     /**
      * CPU ctor
@@ -273,12 +267,10 @@ public class CPU implements Runnable
         return m_ticks;
     }
 
-    //}
 
     //======================================================================
     //Debug Methods
     //----------------------------------------------------------------------
-    //{
     
     /**
      * regDump
@@ -359,12 +351,10 @@ public class CPU implements Runnable
 
     }//printInstr
 
-    //}
 
     //======================================================================
     //Methods
     //----------------------------------------------------------------------
-    //{
 
     /**
      * checkForIOInterrupt
@@ -606,8 +596,6 @@ public class CPU implements Runnable
 
     }//run
 
-    //}
     
 };//class CPU
 
-// vim: foldmethod=marker foldmarker={,} foldlevel=99

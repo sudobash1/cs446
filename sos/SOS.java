@@ -22,7 +22,6 @@ public class SOS implements CPU.TrapHandler
     //======================================================================
     //Member variables
     //----------------------------------------------------------------------
-    //{
 
     /**
      * This flag causes the SOS to print lots of potentially helpful
@@ -70,12 +69,9 @@ public class SOS implements CPU.TrapHandler
      **/
     private RAM m_RAM = null;
     
-    //}
-    
     //======================================================================
     //Constants
     //----------------------------------------------------------------------
-    //{
     
     //These constants define the system calls this OS can currently handle
     public static final int SYSCALL_EXIT     = 0;    /* exit the current program */
@@ -98,18 +94,13 @@ public class SOS implements CPU.TrapHandler
     public static final int SYSCALL_RET_RO = 5;    /* device is read only */
     public static final int SYSCALL_RET_WO = 6;    /* device is write only */
 
-    public static final int MAX_QUANTUM = 5;
-
     /**This process is used as the idle process' id*/
     public static final int IDLE_PROC_ID    = 999;  
-
-    //}
 
     /*======================================================================
      * Constructors & Debugging
      *----------------------------------------------------------------------
      */
-    //{
     
     /**
      * The constructor does nothing special
@@ -148,7 +139,6 @@ public class SOS implements CPU.TrapHandler
         }
     }
 
-    //}
     
     /*======================================================================
      * Memory Block Management Methods
@@ -168,7 +158,6 @@ public class SOS implements CPU.TrapHandler
      * Process Management Methods
      *----------------------------------------------------------------------
      */
-    //{
     
     /**
      * createIdleProcess
@@ -246,6 +235,7 @@ public class SOS implements CPU.TrapHandler
             m_currProcess = null;
         }
         scheduleNewProcess();
+        printProcessTable();
     }//removeCurrentProcess
 
     /**
@@ -298,14 +288,24 @@ public class SOS implements CPU.TrapHandler
             //If we can, we will want to keep the current process running
             if (! m_currProcess.isBlocked()) {
 
+                ++m_currProcess.quantum_used;
+
                 //Check if the process is being selfish and needs a time-out.
-                if (++m_currProcess.quantum > MAX_QUANTUM) {
-                    //Reset its quatum to give it another chance.
-                    m_currProcess.quantum = 0;
+                if (m_currProcess.quantum_used > m_currProcess.quantum) {
+
+                    //This proc is beeing selfish. Cut back on its quantum.
+                    --m_currProcess.quantum;
+                    if (m_currProcess.quantum < m_currProcess.MIN_QUANTUM) {
+                        m_currProcess.quantum = m_currProcess.MIN_QUANTUM;
+                    }
+
                 } else {
                     return m_currProcess;
                 }
             }
+
+            //Reset its quatum_used to give it another chance later.
+            m_currProcess.quantum_used = 0;
         }
 
         ProcessControlBlock newProc = null;
@@ -316,13 +316,29 @@ public class SOS implements CPU.TrapHandler
         if (! (m_currProcess == null) && ! m_currProcess.isBlocked()) {
             newProc = m_currProcess;
         }
-        double maxStarve = -1.;
+
+        //The highest priority found so far.
+        double maxPriority = -1.;
 
         //Find the most starved process
         for (ProcessControlBlock pcb: m_processes) {
-            if (pcb != m_currProcess) {
-                if (! pcb.isBlocked() && pcb.avgStarve > maxStarve) {
-                    maxStarve = pcb.avgStarve;
+
+            if (pcb != m_currProcess && ! pcb.isBlocked()) {
+
+                //We need to compute the starve time ourselves here. The
+                //value in the ProcessControlBlock is not updated constantly.
+                int starveTime = m_CPU.getTicks() - (int)pcb.getLastReadyTime();
+
+                //Feed the starving procs
+                if (starveTime > pcb.STARVED) {
+                    pcb.quantum = pcb.MAX_QUANTUM;
+                }
+
+                //The quantum tells us how important this proc is:
+                double priority = starveTime * pcb.quantum;
+
+                if (priority > maxPriority) {
+                    maxPriority = priority;
                     newProc = pcb;
                 }
             }
@@ -369,19 +385,17 @@ public class SOS implements CPU.TrapHandler
             System.exit(0);
         }
 
-        ProcessControlBlock proc = getRandomProcess();
-        //ProcessControlBlock proc = chooseProcess();
+        //ProcessControlBlock proc = getRandomProcess();
+        ProcessControlBlock proc = chooseProcess();
 
         if (proc == null) {
             //Schedule an idle process.
             createIdleProcess();
-            printProcessTable();
             return;
         }
 
         //We are just scheduling ourself again don't bother context switching!
         if (proc == m_currProcess) {
-            debugPrintln("Keeping curr proc. Q:" + m_currProcess.quantum);
             return;
         }
 
@@ -393,8 +407,6 @@ public class SOS implements CPU.TrapHandler
         //Set this process as the new current process
         m_currProcess = proc;
         m_currProcess.restore(m_CPU);
-
-        printProcessTable();
     }//scheduleNewProcess
 
     /**
@@ -413,13 +425,11 @@ public class SOS implements CPU.TrapHandler
         m_programs.add(prog);
     }//addProgram
 
-    //}
     
     /*======================================================================
      * Program Management Methods
      *----------------------------------------------------------------------
      */
-    //{
 
     /**
      * createProcess
@@ -443,7 +453,6 @@ public class SOS implements CPU.TrapHandler
         m_nextLoadPos = lim + 1;
 
         if (m_currProcess != null) {
-            debugPrintln("Moving proc " + m_currProcess.getProcessId() + " from RUNNING to READY.");
             m_currProcess.save(m_CPU);
         }
 
@@ -462,17 +471,13 @@ public class SOS implements CPU.TrapHandler
         for (int progAddr=0; progAddr<progArray.length; ++progAddr ){
             m_RAM.write(base + progAddr, progArray[progAddr]);
         }
-        
-        printProcessTable();
     }//createProcess
  
-    //}
 
     /*======================================================================
      * Interrupt Handlers
      *----------------------------------------------------------------------
      */
-    //{
 
     public void interruptIOReadComplete(int devID, int addr, int data) {
         Device dev = getDeviceInfo(devID).getDevice();
@@ -533,17 +538,14 @@ public class SOS implements CPU.TrapHandler
      * Handles Clock interrupts.
      */
     public void interruptClock() {
-        debugPrintln("------------------------------CLOCK INTERRUPT");
         scheduleNewProcess();
     }
 
-    //}
     
     /*======================================================================
      * System Calls
      *----------------------------------------------------------------------
      */
-    //{
 
     /**
      * syscallExit
@@ -551,7 +553,6 @@ public class SOS implements CPU.TrapHandler
      * Exits from the current process.
      */
     private void syscallExit() {
-        debugPrintln("Removing proc " + m_currProcess.getProcessId() + " from RAM.");
         removeCurrentProcess();
     }
 
@@ -864,12 +865,10 @@ public class SOS implements CPU.TrapHandler
         }
     }
 
-    //}
 
     //======================================================================
     // Inner Classes
     //----------------------------------------------------------------------
-    //{
     
     /**
      * class ProcessControlBlock
@@ -933,8 +932,32 @@ public class SOS implements CPU.TrapHandler
          * Used to store the average starve time for this process
          */
         private double avgStarve = 0;
+        
+        /** This is the lowest amount of quantum a proc can have. It is also
+         * the default they start with.
+         */
+        public static final int MIN_QUANTUM = 5;
+        
+        /** This is the most quantum a proc can have. It gains more quantum
+         * by performing IO.
+         */
+        public static final int MAX_QUANTUM = 7;
+        
+        /** If the current starve time is longer than this, the proc
+         * automatically gets a quantum of MAX_QUANTUM.
+         */
+        public static final int STARVED = 700;
 
-        public int quantum = 0;
+        /**
+         * How much of the proc's quantum has been used.
+         */
+        public int quantum_used = 0;
+
+        /**
+         * The proc's current quantum. This number also represents the proc's
+         * priority. Higher quantum proc's are more important.
+         */
+        public int quantum = MIN_QUANTUM;
         
         /**
          * constructor
@@ -1340,13 +1363,11 @@ public class SOS implements CPU.TrapHandler
         
     }//class DeviceInfo
 
-    //}
     
     /*======================================================================
      * Device Management Methods
      *----------------------------------------------------------------------
      */
-    //{
 
     /**
      * registerDevice
@@ -1384,8 +1405,6 @@ public class SOS implements CPU.TrapHandler
         return null;
     }
 
-    //}
 
 };//class SOS
 
-// vim: foldmethod=marker foldmarker={,} foldlevel=99
