@@ -411,7 +411,7 @@ public class CPU implements Runnable
      * @return true iff the address is valid.
      */
     public boolean validMemory(int addr, int[] registers){
-        return (addr >= registers[BASE] && addr <= registers[LIM]);
+        return (addr >= registers[BASE] && addr < registers[LIM]);
     }
 
     /**
