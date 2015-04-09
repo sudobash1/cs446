@@ -15,6 +15,7 @@ import java.util.*;
  * HW 4 Stephen Robinson and Jordan White
  * HW 5 Stephen Robinson and Jason Vanderwerf
  * HW 6 Stephen Robinson and Davis Achong
+ * HW 7 Stephen Robinson and Nathan Travanti
  */
 
 public class SOS implements CPU.TrapHandler
@@ -168,7 +169,6 @@ public class SOS implements CPU.TrapHandler
         MemBlock block = null;
         for( MemBlock searchBlock : m_freeList ) {
             if (searchBlock.getSize() >= size) {
-                debugPrintln("no bubble needed.");
                 block = searchBlock;
                 break;
             }
@@ -177,7 +177,6 @@ public class SOS implements CPU.TrapHandler
         //Defrag memory if no block is large enough.
         if (block == null) {
             //We need to bubble all the processes up to the top of ram
-            debugPrintln("BUBBLING");
             Collections.sort(m_processes);
             Collections.sort(m_freeList);
 
@@ -205,13 +204,8 @@ public class SOS implements CPU.TrapHandler
                             curFreeBlock.m_size += nextFreeBlock.getSize();
                         }
                     }
-                    printMemAlloc();
                 }
             }
-
-            debugPrintln("Finished bubbling up procs. There is now " +
-                    m_freeList.size() + " blocks of free mem.");
-            printMemAlloc();
 
             block = m_freeList.get(0);
         }
@@ -230,8 +224,6 @@ public class SOS implements CPU.TrapHandler
         if (block.m_size == 0) {
             m_freeList.remove(block);
         }
-
-        debugPrintln("Inserting prog at " + allocAddr);
 
         return allocAddr;
 
@@ -456,8 +448,6 @@ public void removeCurrentProcess()
 {
     if (m_currProcess != null) {
 
-        debugPrintln("removing proc" +  m_currProcess.getProcessId());
-
         //Free the memory from exiting process
         freeCurrProcessMemBlock();
 
@@ -465,8 +455,6 @@ public void removeCurrentProcess()
         m_currProcess = null;
     }
     scheduleNewProcess();
-    printProcessTable();
-    printMemAlloc();
 }//removeCurrentProcess
 
 /**
@@ -747,10 +735,6 @@ public void interruptIOWriteComplete(int devID, int addr) {
 public void interruptIllegalMemoryAccess(int addr) {
     System.out.println("Error: Illegal Memory Access at addr " + addr);
     System.out.println("NOW YOU DIE!!!");
-    new Exception().printStackTrace();
-    debugPrintln("BASE: " + m_CPU.getBASE() + " PC: " + m_CPU.getPC());
-    m_currProcess.save(m_CPU);
-    printProcessTable();
     System.exit(0);
 }
 
@@ -1258,9 +1242,6 @@ private class ProcessControlBlock implements Comparable<ProcessControlBlock>
      */
     public boolean move(int newBase)
     {
-
-        debugPrintln("ATTEMPTING MOVE!!! DANGER!!!!!");
-
         int size = registers[CPU.LIM] - registers[CPU.BASE];
         int oldBase = registers[CPU.BASE];
 
