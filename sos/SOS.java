@@ -70,6 +70,11 @@ public class SOS implements CPU.TrapHandler
      **/
     private RAM m_RAM = null;
 
+    /**
+     * The MMU in the CPU.
+     **/
+    private MMU m_MMU = null;
+
     //======================================================================
     //Constants
     //----------------------------------------------------------------------
@@ -106,12 +111,13 @@ public class SOS implements CPU.TrapHandler
     /**
      * The constructor does nothing special
      */
-    public SOS(CPU c, RAM r)
+    public SOS(CPU c, RAM r, MMU mmu)
     {
         //Init member list
         m_CPU = c;
         m_CPU.registerTrapHandler(this);
         m_RAM = r;
+        m_MMU = mmu;
 
         m_devices = new Vector<DeviceInfo>();
         m_programs = new Vector<Program>();
@@ -119,6 +125,7 @@ public class SOS implements CPU.TrapHandler
         m_freeList = new Vector<MemBlock>();
 
         //Initially all ram is one free block.
+        //TODO get the size from the MMU
         m_freeList.add(new MemBlock(0, m_RAM.getSize()));
 
     }//SOS ctor
@@ -391,7 +398,7 @@ public class SOS implements CPU.TrapHandler
      */
     private String createPageTableEntry(int pageNum)
     {
-        int frameNum = m_RAM.read(pageNum);
+        int frameNum = m_MMU.read(pageNum);
         int baseAddr = frameNum * m_MMU.getPageSize();
 
         //check to see if student has pre-shifted frame numbers
@@ -512,7 +519,7 @@ public class SOS implements CPU.TrapHandler
         //Load the program into RAM
         for(int i = 0; i < progArr.length; i++)
         {
-            m_RAM.write(baseAddr + i, progArr[i]);
+            m_MMU.write(baseAddr + i, progArr[i]);
         }
 
         //Save the register info from the current process (if there is one)
@@ -801,7 +808,7 @@ public class SOS implements CPU.TrapHandler
         int[] progArray = prog.export();
 
         for (int progAddr=0; progAddr<progArray.length; ++progAddr ){
-            m_RAM.write(base + progAddr, progArray[progAddr]);
+            m_MMU.write(base + progAddr, progArray[progAddr]);
         }
 
         //Load the registers in from the cpu
@@ -1359,14 +1366,14 @@ public class SOS implements CPU.TrapHandler
             int size = registers[CPU.LIM] - registers[CPU.BASE];
             int oldBase = registers[CPU.BASE];
 
-            if (newBase + size > m_RAM.getSize()) {
+            if (newBase + size > m_MMU.getSize()) {
                 //This program is too large to fit into memory there.
                 return false;
             }
 
             //Perform the block copy
             for (int i = 0; i < size; ++i) {
-                m_RAM.write(newBase + i, m_RAM.read(registers[CPU.BASE] + i));
+                m_MMU.write(newBase + i, m_MMU.read(registers[CPU.BASE] + i));
             }
 
             //Update the registers.

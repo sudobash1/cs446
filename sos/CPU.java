@@ -83,6 +83,13 @@ public class CPU implements Runnable
      **/
     private RAM m_RAM = null;
 
+    /**
+     * A pointer to the MMU used by this CPU
+     *
+     * @see MMU
+     **/
+    private MMU m_MMU = null;
+
 
     /**
      * A pointer to the CPU's interrupt controller.
@@ -134,7 +141,7 @@ public class CPU implements Runnable
      *
      * Intializes all member variables.
      */
-    public CPU(RAM ram, InterruptController ic)
+    public CPU(RAM ram, InterruptController ic, MMU mmu)
     {
         m_registers = new int[NUMREG];
         for(int i = 0; i < NUMREG; i++)
@@ -142,6 +149,7 @@ public class CPU implements Runnable
             m_registers[i] = 0;
         }
         m_RAM = ram;
+        m_MMU = mmu;
 
         m_IC = ic;
 
@@ -154,6 +162,7 @@ public class CPU implements Runnable
      */
     public void registerTrapHandler(TrapHandler th)
     {
+        m_MMU.registerTrapHandler(th);
         m_TH = th;
     }
 
@@ -442,7 +451,7 @@ public class CPU implements Runnable
             //program with stack memory to do this.
             m_TH.interruptIllegalMemoryAccess(registers[SP] + registers[BASE]);
         }
-        m_RAM.write(registers[SP] + registers[BASE], value);
+        m_MMU.write(registers[SP] + registers[BASE], value);
         registers[SP]--;
     }
 
@@ -460,7 +469,7 @@ public class CPU implements Runnable
             //Stack underflow!
             m_TH.interruptIllegalMemoryAccess(registers[SP] + registers[BASE]);
         }
-        return m_RAM.read(registers[SP] + registers[BASE]);
+        return m_MMU.read(registers[SP] + registers[BASE]);
     }
 
     /**
@@ -512,7 +521,7 @@ public class CPU implements Runnable
             }
 
             //Fetch next instruction
-            int instr[] = m_RAM.fetch(m_registers[BASE] + m_registers[PC]);
+            int instr[] = m_MMU.fetch(m_registers[BASE] + m_registers[PC]);
 
             //Debug information if enabled
             if (m_verbose) {
@@ -575,7 +584,7 @@ public class CPU implements Runnable
                         m_TH.interruptIllegalMemoryAccess(addr);
                         return;
                     }
-                    m_registers[instr[1]] = m_RAM.read(addr);
+                    m_registers[instr[1]] = m_MMU.read(addr);
                     break;
                 case SAVE:
                     addr = m_registers[instr[2]] + m_registers[BASE];
@@ -583,7 +592,7 @@ public class CPU implements Runnable
                         m_TH.interruptIllegalMemoryAccess(addr);
                         return;
                     }
-                    m_RAM.write(addr, m_registers[instr[1]]);
+                    m_MMU.write(addr, m_registers[instr[1]]);
                     break;
                 case TRAP:
                     m_TH.systemCall();
