@@ -124,6 +124,8 @@ public class SOS implements CPU.TrapHandler
         m_processes = new Vector<ProcessControlBlock>();
         m_freeList = new Vector<MemBlock>();
 
+        initPageTable();
+
         //Initially all ram is one free block.
         //TODO get the size from the MMU
         m_freeList.add(new MemBlock(0, m_RAM.getSize()));
@@ -284,11 +286,6 @@ public class SOS implements CPU.TrapHandler
 
     }//freeCurrProcessMemBlock
 
-    /*======================================================================
-     * Memory Block Management Methods
-     *----------------------------------------------------------------------
-     */
-
     /**
      * printMemAlloc                 *DEBUGGING*
      *
@@ -379,10 +376,23 @@ public class SOS implements CPU.TrapHandler
      *----------------------------------------------------------------------
      */
 
-    //<Method Header Needed>
+    /**
+     * Initialize the page table in RAM. Initially all virtual addresses
+     * will correspond to physical ones.
+     */
     private void initPageTable()
     {
-        //%%%You will implement this method
+        for (int i = 0; i < m_MMU.getNumPages() - 1; ++i) 
+        {
+            if (i < m_MMU.getNumFrames() - 1) 
+            {
+                m_RAM.write(i, i+1);
+            }
+            else 
+            {
+                m_RAM.write(i, -1);
+            }
+        }
     }//initPageTable
 
 

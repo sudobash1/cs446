@@ -318,7 +318,9 @@ public class MMU
                              //be the same logically as physically.
         }
 
-        int frameNo = m_RAM.load(pageNo);
+        // We subtract 1 from the pageNo because there is no entry in the page
+        // table for page 0 (because page 0 is the page table).
+        int frameNo = m_RAM.load(pageNo - 1);
         
         //A -1 denotes that this page is not in RAM.
         if (frameNo == -1) 
