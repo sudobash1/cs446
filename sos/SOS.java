@@ -1383,7 +1383,8 @@ public class SOS implements CPU.TrapHandler
         }
 
         /**
-         * Moves a process to a new location in RAM.
+         * Moves a process to a new location up RAM. Will not work for moving
+         * a process down in RAM.
          * @param newBase the new value of the base register for the process.
          * @return if the move was successfull.
          */
@@ -1397,9 +1398,35 @@ public class SOS implements CPU.TrapHandler
                 return false;
             }
 
+            /*
             //Perform the block copy
             for (int i = 0; i < size; ++i) {
                 m_MMU.write(newBase + i, m_MMU.read(registers[CPU.BASE] + i));
+            }
+            */
+
+            int newPage = 
+                (newBase & m_MMU.getPageMask()) >> m_MMU.getOffsetSize();
+
+            int oldPage = 
+                (oldBase & m_MMU.getPageMask()) >> m_MMU.getOffsetSize();
+
+            int procPages = size / m_MMU.getPageSize();
+
+            int endPage = oldPage + procPages; //Up to but not including this page
+
+            int pageDelta = oldPage - newPage; //how far to move up.
+
+            for (int virtPage = 0; virtPage < endPage - newPage; ++virtPage) 
+            {
+                if (virtPage < procPages) 
+                {
+                    newVirtPage = newPage + virtPage + pageDelta;
+                }
+                else 
+                {
+                    newVirtPage = newPage + virtPage - procPages;
+                }
             }
 
             //Update the registers.
