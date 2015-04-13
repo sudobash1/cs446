@@ -296,11 +296,38 @@ public class MMU
     }//setStatus
 
 
-    //<method header needed>
+    /**
+     * Takes a virtual address and returns the corresponding physical address.
+     *
+     * @param virtaAddr The virutal address to translate.
+     * @return The physical address in RAM or -1 on error.
+     */
     private int translate(int virtAddr)
     {
-        //%%%You will implement this method
-        return -1;
+        int pageNo = (virtAddr & m_pageMask) >> m_offsetSize;
+        int offset = virtAddr & m_offsetMask;
+        
+        if (pageNo >= m_numPages)
+        {
+            return -1
+        }
+
+        if (pageNo == 0) 
+        {
+            return virtAddr; //The 0th page is the pagetable and must always
+                             //be the same logically as physically.
+        }
+
+        int frameNo = m_RAM.load(pageNo);
+        
+        //A -1 denotes that this page is not in RAM.
+        if (frameNo == -1) 
+        {
+            return -1; //For now we are not implementing virtualMemory.
+        }
+
+        return (frameNo << m_offsetSize) | offset;
+
     }//translate
 
     /**
