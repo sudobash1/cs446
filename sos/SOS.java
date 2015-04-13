@@ -126,9 +126,11 @@ public class SOS implements CPU.TrapHandler
 
         initPageTable();
 
+        //One page is not really free ram because it is not 
+        int freeRam = (m_MMU.getNumPages() - 1) * m_MMU.getPageSize;
+
         //Initially all ram is one free block.
-        //TODO get the size from the MMU
-        m_freeList.add(new MemBlock(0, m_RAM.getSize()));
+        m_freeList.add(new MemBlock(0, freeRam);
 
     }//SOS ctor
 
@@ -163,12 +165,23 @@ public class SOS implements CPU.TrapHandler
     /**
      * Find the next free block in memory large enough for a program of size.
      * If there is not enough contiguous free memory then defrag the ram.
+     *
+     * The size is rounded up to the nearest pageSize.
+     *
      * @param size The size the block of free memory needs to be.
      * @return the address to place the program in ram or -1 if there is not
      * enough room.
      */
     private int allocBlock(int size)
     {
+
+        //Round up the size to the nearest pageSize
+        int rem = size % m_MMU.getPageSize()
+        if (rem != 0)
+        {
+            size += m_MMU.getPageSize() - rem;
+        }
+
         //Check if all memory has been allocated
         if (m_freeList.size() == 0) {
             return -1; //you are screwed...
@@ -382,10 +395,13 @@ public class SOS implements CPU.TrapHandler
      */
     private void initPageTable()
     {
+        //Note: one page is resurved for the page table.
         for (int i = 0; i < m_MMU.getNumPages() - 1; ++i) 
         {
             if (i < m_MMU.getNumFrames() - 1) 
             {
+                //Because the first page is reserved for the page table, 
+                //all addresses must be offset by one to skip it.
                 m_RAM.write(i, i+1);
             }
             else 

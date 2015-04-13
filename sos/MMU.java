@@ -300,16 +300,17 @@ public class MMU
      * Takes a virtual address and returns the corresponding physical address.
      *
      * @param virtaAddr The virutal address to translate.
-     * @return The physical address in RAM or -1 on error.
+     * @return The physical address in RAM.
      */
     private int translate(int virtAddr)
     {
         int pageNo = (virtAddr & m_pageMask) >> m_offsetSize;
         int offset = virtAddr & m_offsetMask;
         
-        if (pageNo >= m_numPages)
+        if (pageNo >= m_numPages || virtAddr < 0)
         {
-            return -1
+            System.out.println("ERROR: translate given virtAddr out of range.");
+            System.exit(1);
         }
 
         if (pageNo == 0) 
@@ -325,7 +326,9 @@ public class MMU
         //A -1 denotes that this page is not in RAM.
         if (frameNo == -1) 
         {
-            return -1; //For now we are not implementing virtualMemory.
+            //For now we are not implementing virtualMemory.
+            System.out.println("ERROR: virtual memory not implemented.")
+            System.exit(1);
         }
 
         return (frameNo << m_offsetSize) | offset;
