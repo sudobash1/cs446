@@ -16,6 +16,7 @@ import java.util.*;
  * HW 5 Stephen Robinson and Jason Vanderwerf
  * HW 6 Stephen Robinson and Davis Achong
  * HW 7 Stephen Robinson and Nathan Travanti
+ * HW 8 Stephen Robinson and Taylor Stadeli
  */
 
 public class SOS implements CPU.TrapHandler
