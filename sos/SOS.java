@@ -384,13 +384,11 @@ public class SOS implements CPU.TrapHandler
     private void initPageTable()
     {
         //Note: one page is resurved for the page table.
-        for (int i = 0; i < m_MMU.getNumPages() - 1; ++i) 
+        for (int i = 0; i < m_MMU.getNumPages(); ++i) 
         {
-            if (i < m_MMU.getNumFrames() - 1) 
+            if (i < m_MMU.getNumFrames()) 
             {
-                //Because the first page is reserved for the page table, 
-                //all addresses must be offset by one to skip it.
-                m_RAM.write(i, i+1);
+                m_RAM.write(i, i);
             }
             else 
             {
@@ -807,8 +805,8 @@ public class SOS implements CPU.TrapHandler
         int base = allocBlock(allocSize);
 
         if (base == -1) {
-            System.out.println("Error: Out of memory for new process of size " + allocSize + "!");
-            printMemAlloc();
+            System.out.println("ERROR: Out of memory for new process of size " + allocSize + "!");
+            printPageTable();
             return false;
         }
 
@@ -1411,7 +1409,7 @@ public class SOS implements CPU.TrapHandler
             int freeBlocks[] = new int[deltaBlocks];
             for (int i = 0; i < deltaBlocks; ++i) 
             {
-                freeBlocks[i] = m_RAM.read(i + newFirstPage - 1);
+                freeBlocks[i] = m_RAM.read(i + newFirstPage);
             }
 
             //Determine how many blocks large the process is
@@ -1420,14 +1418,14 @@ public class SOS implements CPU.TrapHandler
             //Move the actual process up in RAM
             for (int i = 0; i < sizeBlocks; ++i) 
             {
-                int block = m_RAM.read(i + oldFirstPage - 1);
-                m_RAM.write(i + newFirstPage - 1, block);
+                int block = m_RAM.read(i + oldFirstPage);
+                m_RAM.write(i + newFirstPage, block);
             }
 
             //Write the free blocks after the process
             for (int i = 0; i < deltaBlocks; ++i)
             {
-                m_RAM.write(i + newFirstPage + sizeBlocks - 1, freeBlocks[i]);
+                m_RAM.write(i + newFirstPage + sizeBlocks, freeBlocks[i]);
             }
 
             //Update the registers.

@@ -313,15 +313,7 @@ public class MMU
             System.exit(1);
         }
 
-        if (pageNo == 0) 
-        {
-            return virtAddr; //The 0th page is the pagetable and must always
-                             //be the same logically as physically.
-        }
-
-        // We subtract 1 from the pageNo because there is no entry in the page
-        // table for page 0 (because page 0 is the page table).
-        int frameNo = m_RAM.read(pageNo - 1);
+        int frameNo = m_RAM.read(pageNo);
         
         //A -1 denotes that this page is not in RAM.
         if (frameNo == -1) 
