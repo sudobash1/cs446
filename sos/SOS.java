@@ -805,7 +805,6 @@ public class SOS implements CPU.TrapHandler
         int base = allocBlock(allocSize);
 
         if (base == -1) {
-            System.out.println("ERROR: Out of memory for new process of size " + allocSize + "!");
             printPageTable();
             return false;
         }
