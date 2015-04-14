@@ -126,11 +126,9 @@ public class SOS implements CPU.TrapHandler
 
         initPageTable();
 
-        //One page is not really free ram because it is not 
-        int freeRam = (m_MMU.getNumPages() - 1) * m_MMU.getPageSize;
-
         //Initially all ram is one free block.
-        m_freeList.add(new MemBlock(0, freeRam);
+        m_freeList.add(new MemBlock(m_MMU.getPageSize(),
+                       m_MMU.getSize() - m_MMU.getPageSize()));
 
     }//SOS ctor
 
@@ -166,21 +164,12 @@ public class SOS implements CPU.TrapHandler
      * Find the next free block in memory large enough for a program of size.
      * If there is not enough contiguous free memory then defrag the ram.
      *
-     * The size is rounded up to the nearest pageSize.
-     *
      * @param size The size the block of free memory needs to be.
      * @return the address to place the program in ram or -1 if there is not
      * enough room.
      */
     private int allocBlock(int size)
     {
-
-        //Round up the size to the nearest pageSize
-        int rem = size % m_MMU.getPageSize()
-        if (rem != 0)
-        {
-            size += m_MMU.getPageSize() - rem;
-        }
 
         //Check if all memory has been allocated
         if (m_freeList.size() == 0) {
@@ -195,7 +184,6 @@ public class SOS implements CPU.TrapHandler
                 break;
             }
         }
-
         //Defrag memory if no block is large enough.
         if (block == null) {
             //We need to bubble all the processes up to the top of ram
@@ -536,7 +524,7 @@ public class SOS implements CPU.TrapHandler
             15, 0, 0, 0 }; //TRAP
 
         //Initialize the starting position for this program
-        int baseAddr = allocBlock(progArr.length);
+        int baseAddr = allocBlock(m_MMU.getPageSize());
         if (baseAddr == -1) {
             System.out.println("FATAL: Out of memory for idle process!");
             System.exit(0);
@@ -808,10 +796,19 @@ public class SOS implements CPU.TrapHandler
      */
     public boolean createProcess(Program prog, int allocSize)
     {
+
+        //Round up the size to the nearest pageSize
+        int rem = allocSize % m_MMU.getPageSize();
+        if (rem != 0)
+        {
+            allocSize += m_MMU.getPageSize() - rem;
+        }
+
         int base = allocBlock(allocSize);
 
         if (base == -1) {
             System.out.println("Error: Out of memory for new process of size " + allocSize + "!");
+            printMemAlloc();
             return false;
         }
 
@@ -839,7 +836,7 @@ public class SOS implements CPU.TrapHandler
 
         //Load the registers in from the cpu
         m_currProcess.save(m_CPU);
-
+        
         printMemAlloc();
 
         return true;
@@ -1405,28 +1402,32 @@ public class SOS implements CPU.TrapHandler
             }
             */
 
-            int newPage = 
-                (newBase & m_MMU.getPageMask()) >> m_MMU.getOffsetSize();
+            //Find out how many blocks up we are moving
+            int oldFirstPage = (oldBase & m_MMU.getPageMask()) >> m_MMU.getOffsetSize();
+            int newFirstPage = (newBase & m_MMU.getPageMask()) >> m_MMU.getOffsetSize();
+            int deltaBlocks = oldFirstPage - newFirstPage;
 
-            int oldPage = 
-                (oldBase & m_MMU.getPageMask()) >> m_MMU.getOffsetSize();
-
-            int procPages = size / m_MMU.getPageSize();
-
-            int endPage = oldPage + procPages; //Up to but not including this page
-
-            int pageDelta = oldPage - newPage; //how far to move up.
-
-            for (int virtPage = 0; virtPage < endPage - newPage; ++virtPage) 
+            //Remeber where the free blocks were in physical RAM
+            int freeBlocks[] = new int[deltaBlocks];
+            for (int i = 0; i < deltaBlocks; ++i) 
             {
-                if (virtPage < procPages) 
-                {
-                    newVirtPage = newPage + virtPage + pageDelta;
-                }
-                else 
-                {
-                    newVirtPage = newPage + virtPage - procPages;
-                }
+                freeBlocks[i] = m_RAM.read(i + newFirstPage - 1);
+            }
+
+            //Determine how many blocks large the process is
+            int sizeBlocks = size / m_MMU.getPageSize();
+
+            //Move the actual process up in RAM
+            for (int i = 0; i < sizeBlocks; ++i) 
+            {
+                int block = m_RAM.read(i + oldFirstPage - 1);
+                m_RAM.write(i + newFirstPage - 1, block);
+            }
+
+            //Write the free blocks after the process
+            for (int i = 0; i < deltaBlocks; ++i)
+            {
+                m_RAM.write(i + newFirstPage + sizeBlocks - 1, freeBlocks[i]);
             }
 
             //Update the registers.
